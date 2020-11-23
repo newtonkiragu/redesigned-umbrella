@@ -17,13 +17,13 @@
     Follow class wiki. 
     p.s.: this needs 10x10 image in the same directory: "white_square.png".
 """
-#native imports
+# native imports
 import math
 import random
 import pyglet
 import sys
 from playsound import playsound
-from gtts import gTTS 
+from gtts import gTTS
 import pyttsx3
 # speech recognition library
 # -------------------------------------#
@@ -50,11 +50,11 @@ debug = 1
 p = pyaudio.PyAudio()
 # Open stream.
 stream = p.open(format=pyaudio.paFloat32,
-    channels=1, rate=44100, input=True,
-    frames_per_buffer=1024)
+                channels=1, rate=44100, input=True,
+                frames_per_buffer=1024)
 # Aubio's pitch detection.
 pDetection = aubio.pitch("default", 2048,
-    2048//2, 44100)
+                         2048//2, 44100)
 # Set unit.
 pDetection.set_unit("Hz")
 pDetection.set_silence(-40)
@@ -64,13 +64,18 @@ pDetection.set_silence(-40)
 p1_score = 0
 p2_score = 0
 
-#play some fun sounds?
+# play some fun sounds?
+
+
 def hit():
     playsound('hit.wav', False)
+
 
 hit()
 # speech recognition functions using google api
 # -------------------------------------#
+
+
 def listen_to_speech():
     global quit
     while not quit:
@@ -85,27 +90,32 @@ def listen_to_speech():
             # to use another API key, use `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
             # instead of `r.recognize_google(audio)`
             recog_results = r.recognize_google(audio)
-            print("[speech recognition] Google Speech Recognition thinks you said \"" + recog_results + "\"")
+            print(
+                "[speech recognition] Google Speech Recognition thinks you said \"" + recog_results + "\"")
             # if recognizing quit and exit then exit the program
             if recog_results == "quit" or recog_results == "exit":
                 quit = True
             if recog_results == "up":
                 p1.y -= self.speed
-                p1.last_movements.append(-self.speed) 
+                p1.last_movements.append(-self.speed)
         except sr.UnknownValueError:
-            print("[speech recognition] Google Speech Recognition could not understand audio")
+            print(
+                "[speech recognition] Google Speech Recognition could not understand audio")
         except sr.RequestError as e:
-            print("[speech recognition] Could not request results from Google Speech Recognition service; {0}".format(e))
+            print(
+                "[speech recognition] Could not request results from Google Speech Recognition service; {0}".format(e))
 # -------------------------------------#
 
 # pitch & volume detection
 # -------------------------------------#
+
+
 def sense_microphone():
     global quit
     while not quit:
-        data = stream.read(1024,exception_on_overflow=False)
+        data = stream.read(1024, exception_on_overflow=False)
         samples = num.fromstring(data,
-            dtype=aubio.float_type)
+                                 dtype=aubio.float_type)
 
         # Compute the pitch of the microphone input
         pitch = pDetection(samples)[0]
@@ -127,11 +137,12 @@ class Ball(object):
         self.debug = 0
         self.TO_SIDE = 5
         self.x = 50.0 + self.TO_SIDE
-        self.y = float( random.randint(0, 450) )
+        self.y = float(random.randint(0, 450))
         self.x_old = self.x  # coordinates in the last frame
         self.y_old = self.y
         self.vec_x = 2**0.5 / 2  # sqrt(2)/2
         self.vec_y = random.choice([-1, 1]) * 2**0.5 / 2
+
 
 class Player(object):
 
@@ -141,7 +152,7 @@ class Player(object):
         self.x = 50.0 + (screen_WIDTH - 100) * NUMBER
         self.y = 50.0
         self.last_movements = [0]*4  # short movement history
-                                     # used for bounce calculation
+        # used for bounce calculation
         self.up_key, self.down_key = None, None
         if NUMBER == 0:
             self.up_key = pyglet.window.key.W
@@ -164,7 +175,7 @@ class Model(object):
         self.pressed_keys = set()  # set has no duplicates
         self.quit_key = pyglet.window.key.Q
         self.speed = 6  # in pixels per frame
-        self.ball_speed = self.speed #* 2.5
+        self.ball_speed = self.speed  # * 2.5
         self.WIDTH, self.HEIGHT = DIMENSIONS
         # STATE VARS
         self.paused = False
@@ -172,8 +183,9 @@ class Model(object):
 
     def reset_ball(self, who_scored):
         """Place the ball anew on the loser's side."""
-        if debug: print(str(who_scored)+" scored. reset.")
-        self.ball.y = float( random.randint(0, self.HEIGHT) )
+        if debug:
+            print(str(who_scored)+" scored. reset.")
+        self.ball.y = float(random.randint(0, self.HEIGHT))
         self.ball.vec_y = random.choice([-1, 1]) * 2**0.5 / 2
         if who_scored == 0:
             self.ball.x = self.WIDTH - 50.0 - self.ball.TO_SIDE
@@ -209,24 +221,25 @@ class Model(object):
         b = self.ball
         if b.x + b.TO_SIDE < 0:  # leave on left
             self.reset_ball(1)
-            p2_score+=1
+            p2_score += 1
         elif b.x - b.TO_SIDE > self.WIDTH:  # leave on right
-            p1_score+=1
+            p1_score += 1
             self.reset_ball(0)
 
-    def check_if_paddled(self): 
+    def check_if_paddled(self):
         """Called by update_ball to recalc. a ball hit with a player paddle."""
         b = self.ball
         p0, p1 = self.players[0], self.players[1]
-        angle = math.acos(b.vec_y)  
-        factor = random.randint(5, 15)  
+        angle = math.acos(b.vec_y)
+        factor = random.randint(5, 15)
         cross0 = (b.x < p0.x + 2*b.TO_SIDE) and (b.x_old >= p0.x + 2*b.TO_SIDE)
         cross1 = (b.x > p1.x - 2*b.TO_SIDE) and (b.x_old <= p1.x - 2*b.TO_SIDE)
         if cross0 and -25 < b.y - p0.y < 25:
             playhit = threading.Thread(target=hit(), args=())
             playhit.start()
             hit()
-            if debug: print("hit at "+str(self.i))
+            if debug:
+                print("hit at "+str(self.i))
             illegal_movement = p0.x + 2*b.TO_SIDE - b.x
             b.x = p0.x + 2*b.TO_SIDE + illegal_movement
             angle -= sum(p0.last_movements) / factor / self.ball_speed
@@ -236,7 +249,8 @@ class Model(object):
             playhit = threading.Thread(target=hit(), args=())
             playhit.start()
             hit()
-            if debug: print("hit at "+str(self.i))
+            if debug:
+                print("hit at "+str(self.i))
             illegal_movement = p1.x - 2*b.TO_SIDE - b.x
             b.x = p1.x - 2*b.TO_SIDE + illegal_movement
             angle -= sum(p1.last_movements) / factor / self.ball_speed
@@ -245,6 +259,7 @@ class Model(object):
 
 
 # -------------- Ball position: you can find it here -------
+
     def update_ball(self):
         """
             Update ball position with post-collision detection.
@@ -257,12 +272,11 @@ class Model(object):
         self.i += 2  # "debug"
         b = self.ball
         b.x_old, b.y_old = b.x, b.y
-        b.x += b.vec_x * self.ball_speed 
+        b.x += b.vec_x * self.ball_speed
         b.y += b.vec_y * self.ball_speed
         self.check_if_oob_top_bottom()  # oob: out of bounds
         self.check_if_oob_sides()
         self.check_if_paddled()
-
 
     def update(self):
         """Work through all pressed keys, update and call update_ball."""
@@ -280,26 +294,26 @@ class Model(object):
         # player 1: the user controls the left player by W/S but you should change it to VOICE input
         p1 = self.players[0]
         p1.last_movements.pop(0)
-	#listen_to_speech()
-        if p1.up_key in pks and p1.down_key not in pks: #change this to voice input
+        # listen_to_speech()
+        if p1.up_key in pks and p1.down_key not in pks:  # change this to voice input
             p1.y -= self.speed
             p1.last_movements.append(-self.speed)
-        elif p1.up_key not in pks and p1.down_key in pks: #change this to voice input
+        elif p1.up_key not in pks and p1.down_key in pks:  # change this to voice input
             p1.y += self.speed
             p1.last_movements.append(+self.speed)
         else:
             # notice how we popped from _place_ zero,
             # but append _a number_ zero here. it's not the same.
             p1.last_movements.append(0)
-           
+
         # ----------------- DO NOT CHANGE BELOW ----------------
         # player 2: the other user controls the right player by O/L
         p2 = self.players[1]
         p2.last_movements.pop(0)
-        if p2.up_key in pks and p2.down_key not in pks: #change this to voice input
+        if p2.up_key in pks and p2.down_key not in pks:  # change this to voice input
             p2.y -= self.speed
             p2.last_movements.append(-self.speed)
-        elif p2.up_key not in pks and p2.down_key in pks: #change this to voice input
+        elif p2.up_key not in pks and p2.down_key in pks:  # change this to voice input
             p2.y += self.speed
             p2.last_movements.append(+self.speed)
         else:
@@ -309,6 +323,7 @@ class Model(object):
 
         self.update_ball()
         label.text = str(p1_score)+':'+str(p2_score)
+
 
 class Controller(object):
 
@@ -347,8 +362,10 @@ class View(object):
             # oh god! pyglet's (0, 0) is bottom right! madness.
             self.player_spr.y = self.w.height - (p.y//1 + TO_SIDE)
             self.player_spr.draw()  # these 3 lines: pretend-paddle
-            self.player_spr.y -= 2*TO_SIDE; self.player_spr.draw()
-            self.player_spr.y += 4*TO_SIDE; self.player_spr.draw()
+            self.player_spr.y -= 2*TO_SIDE
+            self.player_spr.draw()
+            self.player_spr.y += 4*TO_SIDE
+            self.player_spr.draw()
         # ------------------ BALL --------------------#
         self.player_spr.x = self.m.ball.x//1 - TO_SIDE
         self.player_spr.y = self.w.height - (self.m.ball.y//1 + TO_SIDE)
@@ -369,7 +386,7 @@ class Window(pyglet.window.Window):
         # ------------------ CLOCK --------------------#
         fps = 30.0
         pyglet.clock.schedule_interval(self.update, 1.0/fps)
-        #pyglet.clock.set_fps_limit(fps)
+        # pyglet.clock.set_fps_limit(fps)
 
     def on_key_release(self, symbol, modifiers):
         self.controller.on_key_release(symbol, modifiers)
@@ -387,14 +404,17 @@ class Window(pyglet.window.Window):
 
 window = Window()
 label = pyglet.text.Label(str(p1_score)+':'+str(p2_score),
-                      font_name='Times New Roman',
-                      font_size=36,
-                      x=window.width//2, y=window.height//2,
-                      anchor_x='center', anchor_y='center')
+                          font_name='Times New Roman',
+                          font_size=36,
+                          x=window.width//2, y=window.height//2,
+                          anchor_x='center', anchor_y='center')
+
+
 @window.event
 def on_draw():
-    #window.clear()
+    # window.clear()
     label.draw()
+
 
 # speech recognition thread
 # -------------------------------------#
@@ -410,8 +430,8 @@ microphone_thread = threading.Thread(target=sense_microphone, args=())
 microphone_thread.start()
 # -------------------------------------#
 
-if debug: print("init window...")
-if debug: print("done! init app...")
+if debug:
+    print("init window...")
+if debug:
+    print("done! init app...")
 pyglet.app.run()
-
-
