@@ -1,0 +1,7 @@
+aubio==0.4.9
+future==0.18.2
+numpy==1.17.4
+playsound==1.2.2
+PyAudio==0.2.11
+pyglet==1.4.7
+SpeechRecognition==3.8.1
