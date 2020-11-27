@@ -26,6 +26,7 @@ from playsound import playsound
 from gtts import gTTS
 import pyttsx3
 import os
+import asyncio
 # speech recognition library
 # -------------------------------------#
 # threading so that listenting to speech would not block the whole program
@@ -69,6 +70,13 @@ p2_score = 0
 def hit():
     playsound('hit.wav', False)
 
+def almost_hit_left():
+    playsound('glass_ping.mp3', False)
+    print("played glass ping")
+
+def almost_hit_right():
+    playsound('pin_dropping.mp3', False)
+    print("played pin drop")
 # hit()
 
 # initialize speech thread
@@ -114,7 +122,7 @@ def listen_to_audio():
     return results
 
 # initialize speech thread
-print("starting thread to listen to audio")
+# print("starting thread to listen to audio")
 
 def gaming_voice_instructions():
     global quit
@@ -130,12 +138,13 @@ def gaming_voice_instructions():
 
         if recog_results == "continue":
             print("Speech recognition has heard continue")
-            SpeakText("Awesome, let's jump right into it. Bear with me, the instructions are pretty long but worth it. The game is controlled by moving the two paddles you can see on the screen. The goal is to defeat your opponent by being the first one to gain 10 points. A player get's a point once the opponent misses a ball. Game Play. To play the game, speak the words up, to move the paddle up and down to move the paddle down. Got it? Well, that's it. You're good to go. Please say continue to proceed to the game or quit to exit the game.")
+            SpeakText("Awesome, let's jump right into it. Bear with me, the instructions are pretty long but worth it. The game is controlled by moving the two paddles you can see on the screen. The goal is to defeat your opponent by being the first one to gain 10 points. A player get's a point once the opponent misses a ball. Game Play. To play the game, player one should speak the words up, to move the paddle up and down to move the paddle down. Player two should speak the words forward, to move the paddle up, and backward to move the paddle down. Got it? Well, that's it. You're good to go. Please say continue to proceed to the game or quit to exit the game.")
             tutorial_output = listen_to_audio()
 
             if tutorial_output == "continue":
                 print("speech recognition has heard continue")
-                main()
+                
+                asyncio.run(main())
             if tutorial_output == "quit" or tutorial_output == "exit" or tutorial_output == "quits":
                 print("speech recongnition has heard quit.")
                 quit = True
@@ -144,51 +153,15 @@ def gaming_voice_instructions():
         if recog_results == "skip":
             print("speech recognition has heard skip")
             SpeakText("Great, let's start.")
-            main()
+            asyncio.run(main())
 
         else:
             print("This is an exception")
             SpeakText(recog_results)
 
 
-
- 
-# def listen_to_speech():
-#     global quit
-#     while not quit:
-        # obtain audio from the microphone
-        # r = sr.Recognizer()
-#         with sr.Microphone() as source:
-#             print("[speech recognition] Say something!")
-#             audio = r.listen(source)
-#         # recognize speech using Google Speech Recognition
-#         try:
-#             # for testing purposes, we're just using the default API key
-#             # to use another API key, use `r.recognize_google(audio, key="GOOGLE_SPEECH_RECOGNITION_API_KEY")`
-#             # instead of `r.recognize_google(audio)`
-#             recog_results = r.recognize_google(audio)
-#             print(
-#                 "[speech recognition] Google Speech Recognition thinks you said \"" + recog_results + "\"")
-#             # if recognizing quit and exit then exit the program
-#             if recog_results == "quit" or recog_results == "exit":
-#                 quit = True
-#             if recog_results == "up":
-#                 print("Speech recognition has heard up")
-#                 p1.y -= self.speed
-#                 p1.last_movements.append(-self.speed)
-#         except sr.UnknownValueError:
-#             print(
-#                 "[speech recognition] Google Speech Recognition could not understand audio")
-#         except sr.RequestError as e:
-#             print(
-#                 "[speech recognition] Could not request results from Google Speech Recognition service; {0}".format(e))
-# # -------------------------------------#
-
-# pitch & volume detection
-# -------------------------------------#
-
-
 def sense_microphone():
+    print("sensing microphone")
     global quit
     while not quit:
         data = stream.read(1024, exception_on_overflow=False)
@@ -204,16 +177,17 @@ def sense_microphone():
         volume = "{:.6f}".format(volume)
 
         # uncomment these lines if you want pitch or volume
-        # print("p"+str(pitch))
-        # print("v"+str(volume))
+        print("p"+str(pitch))
+        print("v"+str(volume))
 # -------------------------------------#
 
-def main():
+async def main():
     class Ball(object):
 
         def __init__(self):
             self.debug = 0
             self.TO_SIDE = 5
+            self.close_to_side = 100
             self.x = 50.0 + self.TO_SIDE
             self.y = float(random.randint(0, 450))
             self.x_old = self.x  # coordinates in the last frame
@@ -241,8 +215,8 @@ def main():
             elif NUMBER == 1:
                 self.up_key = pyglet.window.key.O
                 self.down_key = pyglet.window.key.L
-                self.move_up = "move up"
-                self.move_down = "move down"
+                self.move_up = "forward"
+                self.move_down = "backward"
 
 
     class Model(object):
@@ -297,6 +271,7 @@ def main():
                 illegal_movement = self.HEIGHT - (b.y + b.TO_SIDE)
                 b.y = self.HEIGHT - b.TO_SIDE + illegal_movement
                 b.vec_y *= -1
+        
 
         def check_if_oob_sides(self):
             global p2_score, p1_score
@@ -308,6 +283,19 @@ def main():
             elif b.x - b.TO_SIDE > self.WIDTH:  # leave on right
                 p1_score += 1
                 self.reset_ball(0)
+                
+        def check_if_obj_close_to_side(self):
+            """called by update_ball to check whether the ball is close to the left/right of the screen. """
+            b = self.ball
+            print(b.x + b.close_to_side)
+            print(self.WIDTH - bx)
+            if b.x + b.close_to_side < 200:
+                await asyncio.gather(
+                    asyncio.to_thread(almost_hit_left()))
+            elif self.WIDTH - b.x < 200:
+                await asyncio.gather(
+                    asyncio.to_thread(almost_hit_right()))
+                
 
         def check_if_paddled(self):
             """Called by update_ball to recalc. a ball hit with a player paddle."""
@@ -318,8 +306,6 @@ def main():
             cross0 = (b.x < p0.x + 2*b.TO_SIDE) and (b.x_old >= p0.x + 2*b.TO_SIDE)
             cross1 = (b.x > p1.x - 2*b.TO_SIDE) and (b.x_old <= p1.x - 2*b.TO_SIDE)
             if cross0 and -25 < b.y - p0.y < 25:
-                playhit = threading.Thread(target=hit(), args=())
-                playhit.start()
                 hit()
                 if debug:
                     print("hit at "+str(self.i))
@@ -360,9 +346,12 @@ def main():
             self.check_if_oob_top_bottom()  # oob: out of bounds
             self.check_if_oob_sides()
             self.check_if_paddled()
+            self.check_if_obj_close_to_side()
 
-        def update(self):
+        def update(self, move_up):
+        # def update(self, move_options):
             """Work through all pressed keys, update and call update_ball."""
+            # print("updating game")
             pks = self.pressed_keys
             if quit:
                 sys.exit(1)
@@ -377,12 +366,13 @@ def main():
             # player 1: the user controls the left player by W/S but you should change it to VOICE input
             p1 = self.players[0]
             p1.last_movements.pop(0)
-            move_options = listen_to_audio()
+
             # if p1.up_key in pks and p1.down_key not in pks:  # change this to voice input
             if p1.move_up in move_options and p1.move_down not in move_options:
                 p1.y -= self.speed
                 p1.last_movements.append(-self.speed)
-            elif p1.move_up not in move_options and p1.move_down in move_options:  # change this to voice input
+            # elif p1.up_key not in pks and p1.down_key in pks:  # change this to voice input
+            elif p1.move_up not in move_options and p1.move_down in move_options: 
                 p1.y += self.speed
                 p1.last_movements.append(+self.speed)
             else:
@@ -394,10 +384,12 @@ def main():
             # player 2: the other user controls the right player by O/L
             p2 = self.players[1]
             p2.last_movements.pop(0)
-            if p2.move_up in move_options and p2.move_down not in move_options:  # change this to voice input
+            # if p2.up_key in pks and p2.down_key not in pks: # change this to voice input
+            if p2.move_up in move_options and p2.move_down not in move_options:  
                 p2.y -= self.speed
                 p2.last_movements.append(-self.speed)
-            elif p2.move_up not in move_options and p2.move_down in move_options:  # change this to voice input
+            # elif p2.up_key not in pks and p2.down_key in pks: # change this to voice input
+            elif p2.move_up not in move_options and p2.move_down in move_options:  
                 p2.y += self.speed
                 p2.last_movements.append(+self.speed)
             else:
@@ -413,6 +405,13 @@ def main():
 
         def __init__(self, model):
             self.m = model
+            self.move_options = None
+        
+        def listen(self):
+            await asyncio.gather(
+                asyncio.to_thread(self.move_options = listen_to_audio()))
+            return self.move_options
+            
 
         def on_key_press(self, symbol, modifiers):
             # `a |= b`: mathematical or. add to set a if in set a or b.
@@ -425,7 +424,8 @@ def main():
                 self.m.pressed_keys.remove(symbol)
 
         def update(self):
-            self.m.update()
+            # self.m.update(self.listen())
+            self.m.update(listen())
 
 
     class View(object):
@@ -482,6 +482,7 @@ def main():
             # XXX make more efficient (save last position, draw black square
             # over that and the new square, don't redraw _entire_ frame.)
             self.clear()
+
             self.controller.update()
             self.view.redraw()
 
@@ -509,16 +510,24 @@ def main():
     pyglet.app.run()
 
 gaming_voice_instructions()
-# speech recognition thread
-# -------------------------------------#
-# start a thread to listen to speech
-speech_thread = threading.Thread(target=listen_to_audio, args=())
-speech_thread.start()
-# -------------------------------------#
 
+# speech_thread = threading.Thread(target=listen_to_audio, args=(), name="Speech Thread")
+# speech_thread.start()
+# -------------------------------------#
+# spoken_voice_thread = threading.Thread(target=SpeakText, args=(), name="Spoken voice thread")
+# spoken_voice_thread.start()
 # pitch & volume detection
 # -------------------------------------#
 # start a thread to detect pitch and volume
-microphone_thread = threading.Thread(target=sense_microphone, args=())
+microphone_thread = threading.Thread(target=sense_microphone, args=(), name="microphone thread")
 microphone_thread.start()
 # -------------------------------------#
+
+# speech_thread.join()
+# spoken_voice_thread.join()
+# microphone_thread.join()
+print("Main thread name: {}".format(threading.main_thread().name)) 
+print("Main thread name: {}".format(threading.current_thread().name)) 
+# speech recognition thread
+# -------------------------------------#
+# start a thread to listen to speech
